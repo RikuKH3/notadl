@@ -1,4 +1,4 @@
-﻿program notadl;
+program notadl;
 
 {$WEAKLINKRTTI ON}
 {$RTTI EXPLICIT METHODS([]) PROPERTIES([]) FIELDS([])}
@@ -62,8 +62,15 @@ begin
           MemoryStream1.Position := 0;
           StringList1.LoadFromStream(MemoryStream1);
           MemoryStream1.Clear;
-          for i:=StringList1.Count-1 downto 0 do if StringList1[i]='Переведено на Нотабеноиде' then break;
-          if i>0 then if i-3>=1 then if StringList1[i-3]='Внимание! Этот перевод, возможно, ещё не готов.' then for y:=0 to StringList1.Count-i+3 do StringList1.Delete(StringList1.Count-1) else else for y:=0 to StringList1.Count-i do StringList1.Delete(StringList1.Count-1);
+
+          y := -1;
+          if StringList1.Count>0 then for i:=StringList1.Count-1 downto 0 do if StringList1[i]='Переведено на Нотабеноиде' then begin y:=i; break end;
+          if y>-1 then begin
+            if y-3>-1 then begin
+              if StringList1[y-3]='Внимание! Этот перевод, возможно, ещё не готов.' then for i:=0 to StringList1.Count-y+3 do StringList1.Delete(StringList1.Count-1) else for i:=0 to StringList1.Count-y do StringList1.Delete(StringList1.Count-1);
+            end else for i:=0 to StringList1.Count-y-1 do StringList1.Delete(StringList1.Count-1);
+          end;
+
           Writeln(OutDir+'\'+ChapterName+'.txt');
           StringList1.SaveToFile(OutDir+'\'+ChapterName+'.txt', TEncoding.UTF8);
         end;
