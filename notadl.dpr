@@ -17,12 +17,12 @@ var
   IdHTTP1: TIdHTTP;
   StringList1: TStringList;
   i, x, y: Integer;
-  s, ChapterId, ChapterName, OutDir: String;
+  s, ChapterId, ChapterName, OutPath: String;
 begin
   try
-    Writeln('Notabenoid Downloader v1.0 by RikuKH3');
+    Writeln('Notabenoid Downloader v1.1 by RikuKH3');
     Writeln('-------------------------------------');
-    if ParamCount<3 then begin Writeln('Usage: '+ExtractFileName(ParamStr(0))+' <login> <password> <book>'); Readln; exit end;
+    if (ParamCount < 3) then begin Writeln('Usage: '+ExtractFileName(ParamStr(0))+' <login> <password> <book> [output folder]'); Readln; exit end;
 
     StringList1:=TStringList.Create; MemoryStream1:=TMemoryStream.Create;
     try
@@ -38,24 +38,33 @@ begin
         StringList1.LoadFromStream(MemoryStream1, TEncoding.UTF8);
         MemoryStream1.Clear;
 
+        if (ParamCount > 3) then begin
+          OutPath := ExpandFileName(StringReplace(ParamStr(4), '/', '\', [rfReplaceAll]));
+          i := Length(OutPath);
+          x := i;
+          while OutPath[i]='\' do Dec(i);
+          if (i < x) then SetLength(OutPath, i);
+          OutPath := OutPath + '\';
+        end else OutPath := GetCurrentDir + '\book_'+ ParamStr(3) + '\';
+
+        ForceDirectories(OutPath);
+
         x := 0;
         for i:=0 to StringList1.Count-1 do begin
           x := Pos('<tr id='#39'c_', StringList1[i]);
-          if x>0 then begin
-            s:=StringList1[i];
-            OutDir := ExtractFilePath(ParamStr(0))+'book_'+ParamStr(3);
-            if not (DirectoryExists(OutDir)) then CreateDir(OutDir);
+          if (x > 0) then begin
+            s := StringList1[i];
             break
           end
         end;
 
-        while x>0 do begin
+        while (x > 0) do begin
           x := Pos('<a href=', s);
           s := Copy(s, x+9);
           i := Pos(#39, s);
           ChapterId := Copy(s, 1, i-1);
           s := Copy(s, i+2);
-          ChapterName := Copy(s, 1, Pos('</a>',s)-1);
+          ChapterName := Copy(s, 1, Pos('</a>',s)-1).Replace(#32, '_', [rfReplaceAll]);
           x := Pos('<tr id='#39'c_', s);
           s := Copy(s, x);
           IdHTTP1.Get('http://notabenoid.org'+ChapterId+'/download?format=t&enc=UTF-8', MemoryStream1);
@@ -65,14 +74,14 @@ begin
 
           y := -1;
           if StringList1.Count>0 then for i:=StringList1.Count-1 downto 0 do if StringList1[i]='Переведено на Нотабеноиде' then begin y:=i; break end;
-          if y>-1 then begin
-            if y-3>-1 then begin
+          if (y > -1) then begin
+            if (y-3 > -1) then begin
               if StringList1[y-3]='Внимание! Этот перевод, возможно, ещё не готов.' then for i:=0 to StringList1.Count-y+3 do StringList1.Delete(StringList1.Count-1) else for i:=0 to StringList1.Count-y do StringList1.Delete(StringList1.Count-1);
             end else for i:=0 to StringList1.Count-y-1 do StringList1.Delete(StringList1.Count-1);
           end;
 
-          Writeln(OutDir+'\'+ChapterName+'.txt');
-          StringList1.SaveToFile(OutDir+'\'+ChapterName+'.txt', TEncoding.UTF8);
+          Writeln(ChapterName + '.txt');
+          StringList1.SaveToFile(OutPath + ChapterName + '.txt', TEncoding.UTF8);
         end;
       finally IdHTTP1.Free end;
     finally StringList1.Free; MemoryStream1.Free end;
